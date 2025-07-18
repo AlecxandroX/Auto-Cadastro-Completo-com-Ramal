@@ -2,7 +2,7 @@
 // @name         Auto Cadastro Completo com Ramal
 // @namespace    http://tampermonkey.net/
 // @version      1.0
-// @description  Cadastro automatizado BINA
+// @description  Cadastro automatizado com base na planilha de ramais CREDINORTE
 // @author       Patrão Alex
 // @match        *://*/*
 // @grant        none
@@ -163,21 +163,8 @@
     { "ramal": "9999", "nome": "Teste", "login": "9999", "senha": "Ramal@9999", "email": "ramal9999@credinorte.com.br", "linha": "" }
 ];
 
-   let index = 0;
+    let index = 0;
     const delay = ms => new Promise(res => setTimeout(res, ms));
-
-    const esperarElemento = (seletor, callback, tentativas = 30, intervalo = 500) => {
-        const timer = setInterval(() => {
-            const el = document.querySelector(seletor);
-            if (el) {
-                clearInterval(timer);
-                callback(el);
-            } else if (--tentativas <= 0) {
-                clearInterval(timer);
-                console.warn(`⚠️ Elemento ${seletor} não encontrado após várias tentativas`);
-            }
-        }, intervalo);
-    };
 
     async function preencherCampos() {
         if (index >= dados.length) {
@@ -188,45 +175,64 @@
         const item = dados[index];
         console.log(`➡️ Cadastrando ${item.nome} (${item.ramal})`);
 
+        // Etapa 1: Clique no botão de adicionar
         const addBtn = [...document.querySelectorAll('mat-icon')].find(e => e.textContent.trim() === "add_circle_outline");
         if (!addBtn) return console.error("❌ Botão de adicionar não encontrado.");
         addBtn.click();
         await delay(1000);
 
+        // Nome (firstName) = Ramal
+        document.querySelector('input[formcontrolname="firstName"]').value = item.ramal;
+        document.querySelector('input[formcontrolname="firstName"]').dispatchEvent(new Event('input', { bubbles: true }));
+
+        // Sobrenome (lastName) = Nome
+        document.querySelector('input[formcontrolname="lastName"]').value = item.nome;
+        document.querySelector('input[formcontrolname="lastName"]').dispatchEvent(new Event('input', { bubbles: true }));
+
+        // Login = Ramal
+        document.querySelector('input[formcontrolname="username"]').value = item.ramal;
+        document.querySelector('input[formcontrolname="username"]').dispatchEvent(new Event('input', { bubbles: true }));
+
+        // Email
+        document.querySelector('input[formcontrolname="email"]').value = item.email;
+        document.querySelector('input[formcontrolname="email"]').dispatchEvent(new Event('input', { bubbles: true }));
+
+        // Senha
+        document.querySelector('input[formcontrolname="password"]').value = item.senha;
+        document.querySelector('input[formcontrolname="password"]').dispatchEvent(new Event('input', { bubbles: true }));
+
+        // Seletor "Plano de Perfil"
+        document.querySelector('mat-select[formcontrolname="profilePlanId"]').click();
+        await delay(500);
+        const options = document.querySelectorAll('mat-option');
+        if (options[3]) options[3].click(); // terceira opção = advanced
+        else console.warn("⚠️ Opção 'advanced' não encontrada.");
+        await delay(500);
+
+        // Botão "Próximo"
         const btnProximo = [...document.querySelectorAll('span.mat-button-wrapper')].find(el => el.textContent.trim() === "Próximo");
         if (btnProximo) btnProximo.click();
         await delay(1000);
 
-        const abrirPainel = setInterval(() => {
-            const painel = [...document.querySelectorAll('mat-panel-title')]
-                .find(el => el.textContent.trim() === 'Recursos Extras');
+        // DDD
+        document.querySelector('input[formcontrolname="areaCode"]').value = "47";
+        document.querySelector('input[formcontrolname="areaCode"]').dispatchEvent(new Event('input', { bubbles: true }));
 
-            if (painel) {
-                const header = painel.closest('.mat-expansion-panel-header');
-                if (header) {
-                    header.click();
-                    clearInterval(abrirPainel);
+        // Número
+        document.querySelector('input[formcontrolname="number"]').value = item.ramal;
+        document.querySelector('input[formcontrolname="number"]').dispatchEvent(new Event('input', { bubbles: true }));
 
-                    // Agora esperar o campo callerid aparecer
-                    esperarElemento('input[formcontrolname="callerid"]', input => {
-                        input.focus();
-                        input.value = item.linha;
+        // Senha novamente
+        document.querySelector('input[formcontrolname="extensionPassword"]').value = item.senha;
+        document.querySelector('input[formcontrolname="extensionPassword"]').dispatchEvent(new Event('input', { bubbles: true }));
 
-                        const event = new Event('input', { bubbles: true });
-                        input.dispatchEvent(event);
-                    });
-                }
-            }
-        }, 500);
-
-        await delay(2500);
-
+        // Botão final "Salvar"
         const btnSalvar = [...document.querySelectorAll('span.mat-button-wrapper')].find(el => el.textContent.trim() === "Salvar");
         if (btnSalvar) btnSalvar.click();
         else console.warn("⚠️ Botão 'Salvar' não encontrado");
 
         index++;
-        await delay(3000);
+        await delay(2500);
         preencherCampos();
     }
 
